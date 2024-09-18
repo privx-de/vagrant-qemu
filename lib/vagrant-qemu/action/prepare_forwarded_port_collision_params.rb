@@ -21,7 +21,7 @@ module VagrantPlugins
 
         # remap ssh.host to ssh_port
         if options[:id] == "ssh"
-          remap[options[:host]] = options[:ssh_port]
+          remap[options[:host]] = machine.provider_config.ssh_port
           break
         end
       end

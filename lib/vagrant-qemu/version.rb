@@ -1,5 +1,5 @@
 module VagrantPlugins
   module QEMU
-    VERSION = '24.07.07'
+    VERSION = '24.07.10'
   end
 end
