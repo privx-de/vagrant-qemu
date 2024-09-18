@@ -74,7 +74,7 @@ module VagrantPlugins
           end
 
           cmd = []
-          cmd += %W(qemu-system-#{options[:arch]})
+          cmd += %W(socket_vmnet_client /opt/homebrew/var/run/socket_vmnet qemu-system-#{options[:arch]})
 
           # basic
           cmd += %W(-machine #{options[:machine]}) if !options[:machine].nil?
@@ -85,28 +85,26 @@ module VagrantPlugins
           # network
           if !options[:net_device].nil?
             # net device
-            macaddr = options[:mac_address].nil? ? "" : ",mac=" + options[:mac_address]
+            macaddr = if options[:mac_address].nil?
+              mac = "52:54:%02x:%02x:%02x:%02x" % Array.new(4){ rand(256) }
+              ",mac=#{mac}"
+            else
+              ",mac=" + options[:mac_address]
+            end
             cmd += %W(-device #{options[:net_device]},netdev=net0#{macaddr})
 
-            # net type
-            net_type = "user"
-            if !options[:socket_fd].nil?
-              net_type = "socket,fd=#{options[:socket_fd]}"
+            hostfwd = ",hostfwd=tcp::#{options[:ssh_port]}-:22"
+            options[:ports].each do |v|
+              hostfwd += ",hostfwd=#{v}"
             end
 
-            # ports
-            hostfwd = ""
-            if options[:socket_fd].nil?
-              hostfwd = ",hostfwd=tcp::#{options[:ssh_port]}-:22"
-              options[:ports].each do |v|
-                hostfwd += ",hostfwd=#{v}"
-              end
-            end
             extra_netdev = ""
             if !options[:extra_netdev_args].nil?
               extra_netdev = ",#{options[:extra_netdev_args]}"
             end
-            cmd += %W(-netdev #{net_type},id=net0#{hostfwd}#{extra_netdev})
+            cmd += %W(-netdev socket,fd=3,id=net0#{extra_netdev})
+            cmd += %W(-device #{options[:net_device]},netdev=net1)
+            cmd += %W(-netdev user,id=net1#{hostfwd})
           end
 
           # drive
